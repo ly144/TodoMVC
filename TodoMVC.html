@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>TodoMVC</title>
+	<script type="text/javascript" src="js/vue.js"></script>
+	<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+</head>
+<body>
+	<div id="app">
+		<h1>todos</h1>
+		<input type="text" name="newTodo" v-model="newTodo.content" placeholder="What needs to be done?"  />
+		<input type="button" value="Submit" v-on:click="addTodo">
+		<div v-show="todos.length">
+			<ul>
+				<li v-for="todo in filteredTodos">
+					<div class="view">
+						<input class="toggle" type="checkbox" v-model="!todo.status" v-on:click="doneTodo(todo)" />
+						<label v-if="todo.status">{{ todo.content }}</label>
+						<del v-if="!todo.status">{{ todo.content }}</del>
+						<button class="destroy" v-on:click="removeTodo(todo)">X</button>
+					</div>
+				</li>
+			</ul>
+		<div>
+		<div v-show="todos.length">
+			<span></span><br />
+			<input class="all" type="button" value="all" v-on:click="filterTodos('all')" />
+			<input class="active" type="button" value="active" v-on:click="filterTodos('active')" />
+			<input class="completed" type="button" value="completed" v-on:click="filterTodos('completed')" />
+			<br />
+			<button v-on:click="removeCompleted">Clear completed</button>
+		</div>
+	</div>
+	<script type="text/javascript">
+		var filters = {
+			'all': (todos) => { return todos; },
+			'active': (todos) => {
+				return todos.filter(todo => { return todo.status; });
+			},
+			'completed': (todos) => {
+				return todos.filter(todo => { return !todo.status; });
+			}
+		};
+		var app = new Vue({
+			el: '#app',
+			data: {
+				url: "http://192.168.0.103:8000/todo/",
+				todos: [],
+				newTodo: {'content': '', 'status': 1},
+				visibility: "all",
+			},
+			methods: {
+				getTodos: function() {
+					var self = this;
+					axios.get(this.url+"getTodos/")
+						.then((res) => { console.log(res); self.todos = res.data; })
+						.catch((error) => { console.log(error); });
+				},
+				addTodo: function() {
+					axios.post(this.url+"addTodo/", this.newTodo)
+						.then((res) => { console.log(res); this.getTodos(); })
+						.catch((error) => { console.log(error); });
+					this.newTodo = {'content': '', 'status': 1};
+				},
+				doneTodo: function(todo) {
+					if (todo.status) {
+						todo.status = 0;
+					} else {
+						todo.status = 1;
+					}
+					axios.post(this.url+"doneTodo/", todo)
+						.then((res) => { console.log(res); this.getTodos(); })
+						.catch((error) => { console.log(error); });
+				},
+				removeTodo: function(todo) {
+					axios.post(this.url+"removeTodo/", todo)
+						.then((res) => { console.log(res); this.getTodos(); })
+						.catch((error) => { console.log(error); });
+				},
+				removeCompleted: function() {
+					axios.get(this.url+"removeCompleted/")
+						.then((res) => { console.log(res); this.getTodos(); })
+						.catch((error) => { console.log(error); });
+				},
+				filterTodos: function(visibility) {
+					this.visibility = visibility;
+				},
+			},
+			mounted: function() {
+				this.getTodos()
+			},
+			computed: {
+				filteredTodos: function() {
+					return filters[this.visibility](this.todos);
+				}
+			}
+		});
+	</script>
+</body>
+</html>
